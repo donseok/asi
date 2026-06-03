@@ -50,6 +50,20 @@ def _no_filter(df: pd.DataFrame) -> pd.Series:
     return pd.Series(True, index=df.index)
 
 
+# 정렬 옵션 레지스트리(자유 정렬). (컬럼, 오름차순여부, 양수만필요).
+# UI selectbox가 이 키를 그대로 노출하고, apply_screen(sort_by=key)로 전달한다.
+SORT_OPTIONS: dict[str, tuple] = {
+    "종합점수 높은순": ("score", False, False),
+    "시가총액 큰순": ("시가총액", False, False),
+    "거래대금 많은순": ("거래대금", False, False),
+    "당일 등락률 높은순": ("등락률", False, False),
+    "당일 등락률 낮은순": ("등락률", True, False),
+    "PER 낮은순": ("PER", True, True),
+    "PBR 낮은순": ("PBR", True, True),
+    "배당수익률 높은순": ("DIV", False, False),
+}
+
+
 # 프리셋 레지스트리.
 # extra_filter: (df) -> bool Series  /  sort_key: (df) -> 정렬용 Series (내림차순)
 PRESETS: dict[str, dict] = {
@@ -111,11 +125,43 @@ def _apply_common_filters(
     mask &= df["시가총액"].fillna(-1) >= min_cap
     mask &= df["거래대금"].fillna(-1) >= min_value
 
-    # 이름검색(부분 일치, 공백 제거). 빈 문자열이면 전체 통과.
+    # 자유 검색(이름 부분일치 OR 6자리 코드 부분일치). 빈 문자열이면 전체 통과.
     q = (query or "").strip()
     if q:
-        mask &= df["name"].astype(str).str.contains(q, regex=False, na=False)
+        by_name = df["name"].astype(str).str.contains(q, regex=False, na=False)
+        by_code = df["ticker"].astype(str).str.contains(q, regex=False, na=False)
+        mask &= by_name | by_code
 
+    return df[mask]
+
+
+def _apply_range_filters(
+    df: pd.DataFrame,
+    *,
+    max_cap: float | None,
+    change_min: float | None,
+    change_max: float | None,
+    max_per: float | None,
+    max_pbr: float | None,
+) -> pd.DataFrame:
+    """자유 범위 필터(선택). 값이 None이면 해당 조건은 통과(미적용).
+
+    - max_cap: 시가총액 상한(원)
+    - change_min/change_max: 당일 등락률(%) 하/상한
+    - max_per/max_pbr: PER/PBR 상한(밸류에이션 enrich 시에만 의미). 0 이하(적자)는 제외.
+    """
+    mask = pd.Series(True, index=df.index)
+    if max_cap is not None and "시가총액" in df.columns:
+        mask &= df["시가총액"].fillna(float("inf")) <= max_cap
+    if "등락률" in df.columns:
+        if change_min is not None:
+            mask &= df["등락률"].fillna(-9999) >= change_min
+        if change_max is not None:
+            mask &= df["등락률"].fillna(9999) <= change_max
+    if max_per is not None and "PER" in df.columns:
+        mask &= (df["PER"] > 0) & (df["PER"] <= max_per)
+    if max_pbr is not None and "PBR" in df.columns:
+        mask &= (df["PBR"] > 0) & (df["PBR"] <= max_pbr)
     return df[mask]
 
 
@@ -128,14 +174,21 @@ def apply_screen(
     limit: int = config.SCREENER_DEFAULT_LIMIT,
     min_cap: float = config.MIN_MARKET_CAP,
     min_value: float = config.MIN_AVG_TRADING_VALUE,
+    max_cap: float | None = None,
+    change_min: float | None = None,
+    change_max: float | None = None,
+    max_per: float | None = None,
+    max_pbr: float | None = None,
+    sort_by: str | None = None,
 ) -> pd.DataFrame:
-    """프리셋 조건으로 스크리닝한 결과를 반환.
+    """프리셋 + 자유 필터/정렬로 스크리닝한 결과를 반환.
 
-    처리 순서(스펙 §4.2):
-      1) 공통 필터(시장·유동성·이름검색)
+    처리 순서:
+      1) 공통 필터(시장·유동성·자유검색[이름 OR 코드])
       2) 프리셋 추가 필터
-      3) 정렬 키 내림차순 정렬 + 정렬 키 NaN 행 제외
-      4) 상위 limit개
+      3) 자유 범위 필터(시총상한·등락률·PER/PBR 상한 — 값 있으면)
+      4) 정렬: sort_by(SORT_OPTIONS) 지정 시 그것으로, 아니면 프리셋 sort_key
+      5) 정렬 키 NaN 제외 + 상위 limit개
 
     입력은 변형하지 않는다(비파괴). 빈 결과는 0행 DataFrame으로 반환.
     """
@@ -155,16 +208,37 @@ def apply_screen(
     if not df.empty:
         df = df[preset["extra_filter"](df)]
 
+    # 3) 자유 범위 필터(선택)
+    if not df.empty:
+        df = _apply_range_filters(
+            df, max_cap=max_cap, change_min=change_min, change_max=change_max,
+            max_per=max_per, max_pbr=max_pbr,
+        )
+
     if df.empty:
         return df.reset_index(drop=True)
 
-    # 3) 정렬 키 계산 → NaN 제외 → 내림차순
-    sort_values = preset["sort_key"](df)
+    # 4) 정렬: 자유 정렬(sort_by) 우선, 없으면 프리셋 기본 정렬
+    if sort_by and sort_by in SORT_OPTIONS:
+        col, ascending, positive_only = SORT_OPTIONS[sort_by]
+        if col not in df.columns:
+            return df.head(0).reset_index(drop=True)
+        sort_values = df[col]
+        if positive_only:
+            sort_values = sort_values.where(sort_values > 0)
+    else:
+        sort_values, ascending = preset["sort_key"](df), False
+
+    # 정렬 키가 전부 NaN이면(예: 무키 모드의 score 기반 프리셋) 시가총액으로 폴백 —
+    # 자유 검색/필터 결과가 통째로 사라지지 않도록 한다.
+    if hasattr(sort_values, "notna") and sort_values.notna().sum() == 0 \
+            and "시가총액" in df.columns:
+        sort_values, ascending = df["시가총액"], False
+
+    # 5) 정렬 키 NaN 제외 → 정렬 → 상위 limit개
     df = df.assign(_sort_key=sort_values)
     df = df[df["_sort_key"].notna()]
-    df = df.sort_values("_sort_key", ascending=False, kind="mergesort")
+    df = df.sort_values("_sort_key", ascending=ascending, kind="mergesort")
     df = df.drop(columns="_sort_key")
-
-    # 4) 상위 limit개
     df = df.head(limit)
     return df.reset_index(drop=True)

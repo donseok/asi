@@ -30,18 +30,18 @@ def test_build_css_loads_pretendard_font():
 
 
 def test_build_css_has_root_color_tokens():
-    # design-light.html :root 색 토큰(배경/표면/잉크/브랜드)
+    # 다크 모던 :root 색 토큰(배경/표면/잉크/브랜드)
     css = ui_theme.build_css()
     assert ":root" in css
     for token in (
-        "--bg:#f4f6fa",
-        "--surface:#ffffff",
-        "--ink:#161b22",
-        "--ink-3:#5b6573",
-        "--ink-4:#6b7480",
-        "--accent:#3182f6",
-        "--accent-ink:#1759c2",
-        "--accent-weak:#e8f1ff",
+        "--bg:#0a0e17",
+        "--surface:#141a27",
+        "--ink:#eaeff7",
+        "--ink-3:#94a0b3",
+        "--ink-4:#697587",
+        "--accent:#5b8cff",
+        "--accent-ink:#a9c6ff",
+        "--accent-weak:rgba(91,140,255,.14)",
     ):
         assert token in css, f"누락된 색 토큰: {token}"
 
@@ -55,7 +55,7 @@ def test_build_css_has_korea_convention_colors():
 
 def test_build_css_has_semantic_tokens():
     css = ui_theme.build_css()
-    for token in ("--good:#14682b", "--warn:#b45309", "--violet:#6541d6"):
+    for token in ("--good:#3fb950", "--warn:#e3b341", "--violet:#b692f6"):
         assert token in css, f"누락된 시맨틱 토큰: {token}"
 
 

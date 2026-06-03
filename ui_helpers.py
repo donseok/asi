@@ -26,6 +26,30 @@ def load_ohlcv_with_indicators(ticker: str) -> pd.DataFrame:
     return add_indicators(get_ohlcv(ticker))
 
 
+@st.cache_data(ttl=3600, show_spinner="수급(기관·외국인) 데이터를 불러오는 중...")
+def load_supply_demand(ticker: str, days: int = 60) -> pd.DataFrame:
+    from core.data import naver
+    return naver.get_supply_demand(ticker, days=days)
+
+
+@st.cache_data(ttl=3600, show_spinner="투자지표를 불러오는 중...")
+def load_overview(ticker: str) -> dict:
+    from core.data import naver
+    return naver.get_overview(ticker)
+
+
+@st.cache_data(ttl=3600, show_spinner="재무 데이터를 불러오는 중...")
+def load_financials(ticker: str) -> pd.DataFrame:
+    from core.data import naver
+    return naver.get_financials(ticker)
+
+
+@st.cache_data(ttl=3600, show_spinner="동일업종 비교를 불러오는 중...")
+def load_peers(ticker: str) -> pd.DataFrame:
+    from core.data import naver
+    return naver.get_peers(ticker)
+
+
 def refresh_all_caches() -> None:
     """디스크 캐시까지 강제 재수집 후 메모리 캐시 비움."""
     build_snapshot(force=True)
@@ -108,6 +132,93 @@ def make_overview_figure(df: pd.DataFrame, title: str) -> go.Figure:
         legend=dict(orientation="h", yanchor="bottom", y=1.02),
         margin=dict(l=10, r=10, t=60, b=10),
     )
+    return fig
+
+
+def make_supply_figure(flows: pd.DataFrame) -> go.Figure:
+    """수급 차트: 기관·외국인 일별 순매매(그룹 막대) + 외국인 보유율(보조축 선).
+
+    flows: core.data.naver.get_supply_demand 산출물(index=date,
+    cols: inst_net/foreign_net/foreign_hold_pct). 빈 입력이면 빈 figure.
+    """
+    fig = make_subplots(specs=[[{"secondary_y": True}]])
+    if flows is None or flows.empty:
+        fig.update_layout(height=360, template="plotly_dark",
+                          margin=dict(l=10, r=10, t=30, b=10))
+        return fig
+
+    x = flows.index
+    # 기관/외국인은 '주체'가 다르므로 색을 분리(부호로 매수/매도 구분은 보조축 0선으로 읽음).
+    fig.add_trace(
+        go.Bar(x=x, y=flows.get("foreign_net"), name="외국인 순매매",
+               marker_color="#5b8cff"),
+        secondary_y=False,
+    )
+    fig.add_trace(
+        go.Bar(x=x, y=flows.get("inst_net"), name="기관 순매매",
+               marker_color="#e3b341"),
+        secondary_y=False,
+    )
+    if "foreign_hold_pct" in flows.columns:
+        fig.add_trace(
+            go.Scatter(x=x, y=flows["foreign_hold_pct"], name="외국인 보유율(%)",
+                       line=dict(color="#b692f6", width=2)),
+            secondary_y=True,
+        )
+    fig.add_hline(y=0, line_width=1, line_color="#3a4456", secondary_y=False)
+    fig.update_layout(
+        height=380, template="plotly_dark", barmode="group",
+        legend=dict(orientation="h", yanchor="bottom", y=1.02),
+        margin=dict(l=10, r=10, t=40, b=10),
+    )
+    fig.update_yaxes(title_text="순매매(주)", secondary_y=False)
+    fig.update_yaxes(title_text="외국인 보유율(%)", secondary_y=True, showgrid=False)
+    return fig
+
+
+def make_financials_figure(fin: pd.DataFrame, annual_only: bool = True) -> go.Figure:
+    """재무 추세: 매출액·영업이익(막대) + 영업이익률(보조축 선).
+
+    fin: core.data.naver.get_financials 산출물(index=항목, columns=기간).
+    '연 '로 시작하는 연간 컬럼만 기본 사용. 빈/항목부족 시 빈 figure.
+    """
+    fig = make_subplots(specs=[[{"secondary_y": True}]])
+    if fin is None or fin.empty:
+        fig.update_layout(height=320, template="plotly_dark",
+                          margin=dict(l=10, r=10, t=30, b=10))
+        return fig
+
+    cols = [c for c in fin.columns if (not annual_only) or str(c).startswith("연")]
+    if not cols:
+        cols = list(fin.columns)
+
+    def _row(name_contains):
+        for idx in fin.index:
+            if name_contains in str(idx):
+                return [fin.loc[idx, c] for c in cols]
+        return None
+
+    rev = _row("매출액")
+    op = _row("영업이익")
+    op_margin = _row("영업이익률")
+    labels = [str(c).replace("연 ", "") for c in cols]
+
+    if rev is not None:
+        fig.add_trace(go.Bar(x=labels, y=rev, name="매출액(억)", marker_color="#3a6fd8"),
+                      secondary_y=False)
+    if op is not None:
+        fig.add_trace(go.Bar(x=labels, y=op, name="영업이익(억)", marker_color="#3fb950"),
+                      secondary_y=False)
+    if op_margin is not None:
+        fig.add_trace(go.Scatter(x=labels, y=op_margin, name="영업이익률(%)",
+                                 line=dict(color="#e3b341", width=2)), secondary_y=True)
+    fig.update_layout(
+        height=340, template="plotly_dark", barmode="group",
+        legend=dict(orientation="h", yanchor="bottom", y=1.02),
+        margin=dict(l=10, r=10, t=40, b=10),
+    )
+    fig.update_yaxes(title_text="금액(억원)", secondary_y=False)
+    fig.update_yaxes(title_text="영업이익률(%)", secondary_y=True, showgrid=False)
     return fig
 
 

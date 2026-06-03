@@ -216,7 +216,24 @@ def test_locked_axes_reason_text(monkeypatch):
     )
     by_axis = {a["axis"]: a for a in out}
     assert "DART" in by_axis["성장"]["locked_reason"]
-    assert "키움" in by_axis["수급"]["locked_reason"]
+    # flows_summary 미전달 → 수급 축은 잠금(데이터 없음 사유 노출)
+    assert by_axis["수급"]["active"] is False
+    assert by_axis["수급"]["locked_reason"] is not None
+    assert "수급" in by_axis["수급"]["locked_reason"]
+
+
+def test_supply_axis_active_with_flows_summary(monkeypatch):
+    # flows_summary가 있으면 수급 축이 활성화되고 등급/사실이 노출된다.
+    _patch_externals(monkeypatch)
+    summary = {"grade": "양호", "facts": ["기관 20일 순매수 (+1,000주)"]}
+    out = checklist.build_checklist(
+        _row(), _make_ohlcv(), [], scored=pd.DataFrame(), flows_summary=summary
+    )
+    supply = next(a for a in out if a["axis"] == "수급")
+    assert supply["active"] is True
+    assert supply["grade"] == "양호"
+    assert supply["locked_reason"] is None
+    assert any("기관" in f for f in supply["facts"])
 
 
 def test_active_axes_have_locked_reason_none(monkeypatch):

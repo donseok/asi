@@ -49,6 +49,13 @@ def get_ohlcv(ticker: str, days: int = config.PRICE_LOOKBACK_DAYS, force: bool =
 
     df = df.rename(columns={k: v for k, v in _RENAME.items() if k in df.columns})
     df.index.name = "date"
+
+    # 거래대금(value) 보강: 현재 pykrx 의 단일종목 get_market_ohlcv 는 시가/고가/저가/
+    # 종가/거래량/등락률만 주고 '거래대금'을 제공하지 않는다. 과열도·저유동성·거래량배수
+    # 등 다운스트림이 'value' 컬럼을 기대하므로, 없으면 거래대금 ≈ 종가×거래량 으로 근사한다.
+    if "value" not in df.columns and {"close", "volume"}.issubset(df.columns):
+        df["value"] = df["close"] * df["volume"]
+
     # 거래량 0(거래정지일)은 지표 왜곡을 막기 위해 종가는 유지하되 그대로 둔다.
     cache.save(key, df)
     return df

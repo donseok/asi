@@ -25,7 +25,8 @@ from core.data.flags import compute_risk_flags
 
 # 잠금 축 사유(점진적 노출·정직 원칙). 후속 단계에서 활성화된다.
 GROWTH_LOCK_REASON = "🔒 성장 — 2단계(DART 재무: EPS·매출 추세) 연동 후 활성화"
-SUPPLY_LOCK_REASON = "🔒 수급 — 4단계(키움 투자자별 순매수) 연동 후 활성화"
+# 수급 축은 네이버 투자자별 순매매(무키)가 있으면 활성화된다. 데이터가 없으면 잠금 표시.
+SUPPLY_LOCK_REASON = "🔒 수급 — 투자자별 매매 데이터를 불러오지 못했습니다(네이버 일시 오류 가능)"
 
 Axis = Dict[str, Any]
 
@@ -158,16 +159,31 @@ def _sentiment_axis(ohlcv: Optional[pd.DataFrame]) -> Axis:
                       locked_reason=None)
 
 
+def _supply_axis(flows_summary: Optional[Dict[str, Any]]) -> Axis:
+    """수급 = 네이버 투자자별 순매매 요약(supply.summarize_flows 산출물).
+
+    flows_summary가 없거나 등급을 못 내면 잠금 표시(정직 원칙).
+    """
+    if not flows_summary or flows_summary.get("grade") is None:
+        return _make_axis("수급", active=False, grade=None, facts=[],
+                          locked_reason=SUPPLY_LOCK_REASON)
+    facts = list(flows_summary.get("facts", []))
+    facts.append("기관·외국인 매매는 사실일 뿐 매수신호가 아닙니다")
+    return _make_axis("수급", active=True, grade=flows_summary.get("grade"),
+                      facts=facts, locked_reason=None)
+
+
 def build_checklist(
     row: pd.Series,
     ohlcv: Optional[pd.DataFrame],
     flags: List[str],
     *,
     scored: pd.DataFrame,
+    flows_summary: Optional[Dict[str, Any]] = None,
 ) -> List[Axis]:
     """6축 판단 체크리스트를 축별로 분리해 반환.
 
-    활성 4축(가치·기술·리스크·심리) + 잠금 2축(성장·수급).
+    활성 축(가치·기술·리스크·심리 + 수급[데이터 있으면]) + 잠금(성장, 수급[데이터 없으면]).
     🔴 6축을 합산한 '매수점수' 필드는 만들지 않는다(축별 분리 — §12.4).
 
     Args:
@@ -175,6 +191,7 @@ def build_checklist(
         ohlcv: 해당 종목 일봉(없으면 기술/심리 축은 데이터 부족 처리).
         flags: compute_risk_flags(ohlcv) 결과(이미 계산된 위험 플래그 목록).
         scored: 전체 스코어 스냅샷(백분위 참조용, 현재 등급은 row 백분위로 충분).
+        flows_summary: supply.summarize_flows(naver flows) 산출물(없으면 수급 축 잠금).
     """
     # scored는 향후 백분위 칩 확장을 위한 슬롯. 현재 등급은 row 백분위로 산출한다.
     _ = scored
@@ -185,6 +202,5 @@ def build_checklist(
         _sentiment_axis(ohlcv),
         _make_axis("성장", active=False, grade=None, facts=[],
                    locked_reason=GROWTH_LOCK_REASON),
-        _make_axis("수급", active=False, grade=None, facts=[],
-                   locked_reason=SUPPLY_LOCK_REASON),
+        _supply_axis(flows_summary),
     ]

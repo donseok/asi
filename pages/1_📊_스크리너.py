@@ -22,6 +22,7 @@ import ui_helpers as ui
 import ui_theme
 from core.analytics import labels, screening
 from core.analytics.scoring import percentile_of
+from core.data.fundamentals import has_valuation_data
 
 st.set_page_config(page_title="ASI — 스크리너", page_icon="📊", layout="wide")
 
@@ -49,6 +50,16 @@ if scored is None or scored.empty:
     )
     st.stop()
 
+# 밸류에이션(PER/PBR/배당) 미제공 안내 — KRX 포털이 해당 데이터를 로그인 필수로
+# 잠가, 무키(FDR) 모드에서는 시가총액 기반 '안정적인 대형주' 위주로만 동작한다.
+if not has_valuation_data(scored):
+    st.info(
+        "ℹ️ 현재 **무키(FDR) 모드**입니다 — KRX가 PER·PBR·ROE·배당 데이터를 로그인 "
+        "전용으로 전환해, 가치/배당/종합 프리셋은 결과가 비어 있을 수 있습니다. "
+        "**'안정적인 대형주'(시가총액 기준)**는 정상 동작합니다. 전체 지표를 쓰려면 "
+        "KRX 무료 계정의 `KRX_ID`/`KRX_PW`를 `.env`에 설정하세요."
+    )
+
 # ── 목적 타일 4개 (단일 선택) — §4.1-2, §4.5 가이드 카피 ──────────────
 # 타일 라벨/이모지/가이드는 PRESETS에서 가져온다(하드코딩 금지).
 preset_keys = list(screening.PRESETS.keys())
@@ -72,8 +83,9 @@ st.markdown(
     unsafe_allow_html=True,
 )
 
-# ── 보조 컨트롤 한 줄 (시장 토글 · 개수 · 검색) — §4.1-3 ─────────────────
-c_market, c_limit, c_query = st.columns([2, 1, 2])
+# ── 보조 컨트롤 (시장 · 정렬 · 개수 · 자유검색) ───────────────────────
+has_val = has_valuation_data(scored)
+c_market, c_sort, c_limit, c_query = st.columns([2, 2, 1, 2])
 with c_market:
     market = st.radio(
         "시장",
@@ -81,45 +93,66 @@ with c_market:
         horizontal=True,
         key="screener_market",
     )
+with c_sort:
+    sort_choices = ["프리셋 기본"] + list(screening.SORT_OPTIONS.keys())
+    sort_by_label = st.selectbox("정렬 기준", options=sort_choices, key="screener_sort")
+    sort_by = None if sort_by_label == "프리셋 기본" else sort_by_label
 with c_limit:
     limit = st.selectbox(
-        "보여줄 개수",
-        options=(20, 30, 50),
-        index=(20, 30, 50).index(config.SCREENER_DEFAULT_LIMIT),
+        "개수",
+        options=(20, 30, 50, 100),
+        index=(20, 30, 50, 100).index(config.SCREENER_DEFAULT_LIMIT),
         key="screener_limit",
     )
 with c_query:
     query = st.text_input(
-        "종목명 검색",
+        "자유 검색 (이름·코드)",
         value="",
-        placeholder="예: 삼성전자",
+        placeholder="예: 삼성전자 또는 005930",
         key="screener_query",
     )
 
-with st.expander("▸ 고급 설정 (유동성 하한 조정)", expanded=False):
+with st.expander("▸ 자유 필터 (유동성·시총·등락률·밸류에이션 범위)", expanded=False):
     st.caption(
-        "초보자라면 기본값 그대로 두셔도 됩니다. "
-        "값을 낮추면 더 작은 회사·거래가 적은 종목까지 포함됩니다."
+        "초보자라면 기본값 그대로 두셔도 됩니다. 조건을 조절하면 원하는 종목군을 좁힐 수 있습니다."
     )
-    min_cap_eok = st.number_input(
-        "시가총액 하한 (억원)",
-        min_value=0,
-        value=int(config.MIN_MARKET_CAP / 1e8),
-        step=50,
-        key="screener_min_cap",
-    )
-    min_value_eok = st.number_input(
-        "당일 거래대금 하한 (억원) — 스크리너는 당일값 기준입니다",
-        min_value=0,
-        value=int(config.MIN_AVG_TRADING_VALUE / 1e8),
-        step=1,
-        key="screener_min_value",
-    )
+    fa, fb = st.columns(2)
+    with fa:
+        min_cap_eok = st.number_input(
+            "시가총액 하한 (억원)", min_value=0,
+            value=int(config.MIN_MARKET_CAP / 1e8), step=50, key="screener_min_cap",
+        )
+        min_value_eok = st.number_input(
+            "당일 거래대금 하한 (억원)", min_value=0,
+            value=int(config.MIN_AVG_TRADING_VALUE / 1e8), step=1, key="screener_min_value",
+        )
+        max_cap_eok = st.number_input(
+            "시가총액 상한 (억원, 0=무제한)", min_value=0, value=0, step=100,
+            key="screener_max_cap",
+        )
+    with fb:
+        chg_lo, chg_hi = st.slider(
+            "당일 등락률 범위 (%)", min_value=-30.0, max_value=30.0,
+            value=(-30.0, 30.0), step=0.5, key="screener_chg",
+        )
+        if has_val:
+            max_per = st.number_input("PER 상한 (0=무제한)", min_value=0.0, value=0.0,
+                                      step=1.0, key="screener_max_per")
+            max_pbr = st.number_input("PBR 상한 (0=무제한)", min_value=0.0, value=0.0,
+                                      step=0.1, key="screener_max_pbr")
+        else:
+            max_per = max_pbr = 0.0
+            st.caption("PER/PBR 필터는 밸류에이션 데이터(KRX 로그인)가 있을 때 활성화됩니다.")
 
 min_cap = float(min_cap_eok) * 1e8
 min_value = float(min_value_eok) * 1e8
+max_cap = float(max_cap_eok) * 1e8 if max_cap_eok > 0 else None
+change_min = None if chg_lo <= -30.0 else float(chg_lo)
+change_max = None if chg_hi >= 30.0 else float(chg_hi)
+max_per_v = float(max_per) if max_per and max_per > 0 else None
+max_pbr_v = float(max_pbr) if max_pbr and max_pbr > 0 else None
 
-# ── 스크리닝 실행 (순수 함수에 위임) — §4.2 ───────────────────────────
+# ── 스크리닝 실행 (순수 함수에 위임) ──────────────────────────────────
 result = screening.apply_screen(
     scored,
     selected_preset,
@@ -128,12 +161,19 @@ result = screening.apply_screen(
     limit=int(limit),
     min_cap=min_cap,
     min_value=min_value,
+    max_cap=max_cap,
+    change_min=change_min,
+    change_max=change_max,
+    max_per=max_per_v,
+    max_pbr=max_pbr_v,
+    sort_by=sort_by,
 )
 
 # ── 결과 헤더 + "안정적 대형주" 한계 캡션 (§4.1-4, §4.5, §8) ─────────────
 preset_label = screening.PRESETS[selected_preset]["label"]
-st.subheader(f"✅ 조건에 맞는 {len(result)}종목 — {preset_label} 순")
-if selected_preset == "stable":
+order_label = sort_by if sort_by else f"{preset_label} 순"
+st.subheader(f"✅ 조건에 맞는 {len(result)}종목 — {order_label}")
+if selected_preset == "stable" and not sort_by:
     st.caption(
         "ℹ️ '안정적인 대형주'는 시가총액(덩치) 기준만 반영합니다. "
         "주가 변동성·역사적 안정성은 아직 반영하지 않습니다(정직 고지)."

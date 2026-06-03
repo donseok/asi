@@ -100,6 +100,18 @@ def render_stock_card(
     except (TypeError, ValueError):
         price_txt = "-"
 
+    # 당일 등락률(있을 때만): 상승=빨강/하락=파랑(한국 관습). 컬럼 없거나 NaN이면 생략.
+    change = _get(row, "등락률")
+    change_block = ""
+    try:
+        if change is not None and float(change) == float(change):
+            cv = float(change)
+            ccls = "chg-up" if cv > 0 else ("chg-down" if cv < 0 else "chg-flat")
+            sign = "+" if cv > 0 else ""
+            change_block = f'<span class="scard-chg {ccls} num">{sign}{cv:.2f}%</span>'
+    except (TypeError, ValueError):
+        change_block = ""
+
     score = _get(row, "score")
     try:
         score_txt = "-" if score is None else f"{float(score):.0f}"
@@ -131,6 +143,7 @@ def render_stock_card(
         "</div>"
         '<div class="price-wrap">'
         f'<div class="price num">{_esc(price_txt)}</div>'
+        f"{change_block}"
         "</div>"
         "</div>"
         f"{badge_block}"
