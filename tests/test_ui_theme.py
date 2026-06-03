@@ -96,3 +96,29 @@ def test_build_css_badge_variants_use_korea_and_semantic_colors():
     assert ".asi-badge.value" in css
     assert ".asi-badge.quality" in css
     assert ".asi-badge.income" in css
+
+
+def test_build_css_has_builder_component_classes():
+    # ui_components.py 빌더가 '실제로' emit하는 클래스가 스타일링되어 있어야
+    # 페이지가 디자인 시스템대로 렌더된다(.asi-* 가 아니라 이 클래스를 쓴다).
+    css = ui_theme.build_css()
+    for cls in (
+        ".scard",
+        ".sumcard",
+        ".subscores",
+        ".risk-card",
+        ".checklist-grid",
+        ".axis-cell",
+        ".week52",
+        ".returns",
+        ".overheat",
+        ".pctile-chips",
+        ".glossary-term",
+        ".badge.b-value",
+        ".badge.b-quality",
+        ".badge.b-div",
+        ".score-num.tier-good",
+        ".ret-up",
+        ".ret-down",
+    ):
+        assert cls in css, f"빌더 컴포넌트 클래스 스타일 누락: {cls}"
