@@ -34,14 +34,14 @@ def test_build_css_has_root_color_tokens():
     css = ui_theme.build_css()
     assert ":root" in css
     for token in (
-        "--bg:#0a0e17",
-        "--surface:#141a27",
-        "--ink:#eaeff7",
-        "--ink-3:#94a0b3",
-        "--ink-4:#697587",
-        "--accent:#5b8cff",
-        "--accent-ink:#a9c6ff",
-        "--accent-weak:rgba(91,140,255,.14)",
+        "--bg:#f6f7fa",
+        "--surface:#ffffff",
+        "--ink:#0f1722",
+        "--ink-3:#5b6776",
+        "--ink-4:#8a96a6",
+        "--accent:#3b6ef5",
+        "--accent-ink:#1f56d6",
+        "--accent-weak:rgba(59,110,245,.09)",
     ):
         assert token in css, f"누락된 색 토큰: {token}"
 
@@ -55,7 +55,7 @@ def test_build_css_has_korea_convention_colors():
 
 def test_build_css_has_semantic_tokens():
     css = ui_theme.build_css()
-    for token in ("--good:#3fb950", "--warn:#e3b341", "--violet:#b692f6"):
+    for token in ("--good:#1a8d3a", "--warn:#b7791f", "--violet:#7c4ddb"):
         assert token in css, f"누락된 시맨틱 토큰: {token}"
 
 

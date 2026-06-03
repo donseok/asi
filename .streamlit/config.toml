@@ -4,8 +4,9 @@
 # Pretendard 웹폰트도 ui_theme의 CSS @import로 로드하므로 여기 font은 sans serif.
 
 [theme]
-primaryColor = "#3182f6"
-backgroundColor = "#f4f6fa"
-secondaryBackgroundColor = "#ffffff"
-textColor = "#161b22"
+base = "light"
+primaryColor = "#3b6ef5"
+backgroundColor = "#f6f7fa"
+secondaryBackgroundColor = "#eef1f6"
+textColor = "#0f1722"
 font = "sans serif"

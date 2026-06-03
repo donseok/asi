@@ -19,58 +19,60 @@ _PRETENDARD_IMPORT = (
     "dist/web/static/pretendard.css');"
 )
 
-# 다크 모던 디자인 토큰. (테스트는 일부 값을 고정 검증한다 — 변경 시 test_ui_theme 동기화)
+# ASI Quietude — 라이트(화이트) 디자인 토큰. (테스트는 일부 값을 고정 검증 → test_ui_theme 동기화)
+# 흰 배경 + 흰 카드(보더/그림자로 분리) + 진한 잉크 + 단일 인디고 액센트.
+# 한국 관습 색(상승=빨강 #e74c3c / 하락=파랑 #3498db)은 유지하되 텍스트용은 흰 배경 대비 보정.
 _ROOT_TOKENS = """
 :root{
-  /* 배경/표면/라인 (딥네이비 다크) */
-  --bg:#0a0e17;
-  --bg-2:#0f1320;
-  --surface:#141a27;
-  --surface-2:#1a2230;
-  --surface-3:#212a3a;
-  --line:#27313f;
-  --line-strong:#34404f;
-  --line-hair:#1c2533;
+  /* 배경/표면/라인 (라이트 — 옅은 회색 캔버스 + 흰 카드로 분리) */
+  --bg:#f6f7fa;
+  --bg-2:#eef1f6;
+  --surface:#ffffff;
+  --surface-2:#f7f9fc;
+  --surface-3:#eef2f7;
+  --line:#e6eaf1;
+  --line-strong:#d3dae4;
+  --line-hair:#eef1f6;
 
-  /* 글래스(반투명 표면) */
-  --glass:rgba(255,255,255,.022);
-  --glass-2:rgba(255,255,255,.05);
-  --hairline:rgba(255,255,255,.06);
+  /* 글래스(라이트 위 미세 음영 — 흰색 오버레이 대신 옅은 다크) */
+  --glass:rgba(17,24,39,.010);
+  --glass-2:rgba(17,24,39,.020);
+  --hairline:rgba(17,24,39,.06);
 
-  /* 잉크(본문/보조/약한) — 다크 위 밝은 텍스트 */
-  --ink:#eaeff7;
-  --ink-2:#c4ccda;
-  --ink-3:#94a0b3;
-  --ink-4:#697587;
+  /* 잉크(본문/보조/약한) — 라이트 위 진한 텍스트 */
+  --ink:#0f1722;
+  --ink-2:#33404f;
+  --ink-3:#5b6776;
+  --ink-4:#8a96a6;
 
-  /* 브랜드(네온 블루) */
-  --accent:#5b8cff;
-  --accent-strong:#7aa2ff;
-  --accent-ink:#a9c6ff;
-  --accent-weak:rgba(91,140,255,.14);
-  --accent-weak-2:rgba(91,140,255,.32);
+  /* 브랜드(인디고 — 흰 배경 대비 보정) */
+  --accent:#3b6ef5;
+  --accent-strong:#2f5fe0;
+  --accent-ink:#1f56d6;
+  --accent-weak:rgba(59,110,245,.09);
+  --accent-weak-2:rgba(59,110,245,.22);
 
-  /* 한국 관습 — 상승=빨강, 하락=파랑 (다크용 약간 밝게 보정) */
+  /* 한국 관습 — 상승=빨강, 하락=파랑 (흰 배경 텍스트 대비 보정) */
   --up:#e74c3c;
-  --up-ink:#ff8079;
-  --up-weak:rgba(231,76,60,.15);
+  --up-ink:#cf2c1c;
+  --up-weak:rgba(231,76,60,.10);
   --down:#3498db;
-  --down-ink:#5cb3ff;
-  --down-weak:rgba(52,152,219,.15);
+  --down-ink:#1f78c0;
+  --down-weak:rgba(52,152,219,.10);
 
-  /* 시맨틱 (다크 위 가독 밝기) */
-  --good:#3fb950;
-  --good-bright:#46d160;
-  --good-chip:#3fb950;
-  --good-weak:rgba(63,185,80,.15);
-  --warn:#e3b341;
-  --warn-bright:#f0c64e;
-  --warn-weak:rgba(227,179,65,.15);
-  --warn-line:rgba(227,179,65,.32);
-  --violet:#b692f6;
-  --violet-weak:rgba(163,113,247,.16);
-  --gold-ink:#e3b341;
-  --gold-weak:rgba(227,179,65,.14);
+  /* 시맨틱 (흰 배경 가독) */
+  --good:#1a8d3a;
+  --good-bright:#16a34a;
+  --good-chip:#1a8d3a;
+  --good-weak:rgba(26,141,58,.10);
+  --warn:#b7791f;
+  --warn-bright:#c98a1a;
+  --warn-weak:rgba(183,121,31,.10);
+  --warn-line:rgba(183,121,31,.28);
+  --violet:#7c4ddb;
+  --violet-weak:rgba(124,77,219,.10);
+  --gold-ink:#9a6a12;
+  --gold-weak:rgba(183,121,31,.10);
 
   /* 라운드 */
   --r-xl:20px;
@@ -79,11 +81,11 @@ _ROOT_TOKENS = """
   --r-sm:9px;
   --r-pill:999px;
 
-  /* 그림자(다크용 깊은 드롭 + 내부 하이라이트) */
-  --sh-soft:0 1px 2px rgba(0,0,0,.35), 0 2px 10px rgba(0,0,0,.35);
-  --sh-card:0 2px 6px rgba(0,0,0,.4), 0 14px 34px rgba(0,0,0,.5);
-  --sh-pop:0 6px 16px rgba(0,0,0,.5), 0 30px 70px rgba(0,0,0,.65);
-  --glow:0 0 0 1px rgba(91,140,255,.30), 0 10px 30px rgba(91,140,255,.28);
+  /* 그림자(라이트용 부드러운 드롭) */
+  --sh-soft:0 1px 2px rgba(16,24,40,.04), 0 2px 8px rgba(16,24,40,.05);
+  --sh-card:0 1px 3px rgba(16,24,40,.06), 0 8px 24px rgba(16,24,40,.07);
+  --sh-pop:0 4px 12px rgba(16,24,40,.10), 0 24px 48px rgba(16,24,40,.10);
+  --glow:0 0 0 1px rgba(59,110,245,.22), 0 8px 24px rgba(59,110,245,.18);
 
   /* 여백(8px 베이스) */
   --s-1:4px; --s-2:8px; --s-3:12px; --s-4:16px;
@@ -101,8 +103,8 @@ html, body, [class*="css"], .stApp, .stMarkdown, .stMarkdown p{
 .stApp{
   color:var(--ink);
   background:
-    radial-gradient(1100px 620px at 78% -8%, rgba(91,140,255,.10), transparent 60%),
-    radial-gradient(900px 560px at 8% 4%, rgba(163,113,247,.07), transparent 55%),
+    radial-gradient(1100px 620px at 78% -8%, rgba(59,110,245,.05), transparent 60%),
+    radial-gradient(900px 560px at 8% 4%, rgba(124,77,219,.035), transparent 55%),
     var(--bg);
   background-attachment:fixed;
 }
@@ -128,7 +130,7 @@ hr, [data-testid="stDivider"]{ border-color:var(--line) !important; }
 
 /* ── 사이드바 ─────────────────────────────────────────── */
 [data-testid="stSidebar"]{
-  background:linear-gradient(180deg, #0d1220, #0b0f1a);
+  background:var(--bg-2);
   border-right:1px solid var(--line);
 }
 [data-testid="stSidebar"] *{ color:var(--ink-2); }
@@ -326,7 +328,7 @@ _COMPONENTS = """
 .asi-badge.quality{background:var(--good-weak);color:var(--good);border-color:rgba(63,185,80,.35);}
 .asi-badge.income{background:var(--violet-weak);color:var(--violet);border-color:rgba(163,113,247,.35);}
 .asi-badge.mkt-kospi{background:var(--down-weak);color:var(--down-ink);border-color:rgba(52,152,219,.32);}
-.asi-badge.mkt-kosdaq{background:rgba(214,113,177,.16);color:#e08cc4;border-color:rgba(214,113,177,.34);}
+.asi-badge.mkt-kosdaq{background:rgba(214,113,177,.16);color:#b03478;border-color:rgba(214,113,177,.34);}
 
 .asi-why{
   font-size:13px;color:var(--ink-2);background:var(--surface-2);
@@ -337,7 +339,7 @@ _COMPONENTS = """
 
 .asi-bar{height:8px;border-radius:var(--r-pill);background:var(--surface-3);overflow:hidden;}
 .asi-bar > i{display:block;height:100%;border-radius:var(--r-pill);
-  background:linear-gradient(90deg,var(--accent),#7aa2ff);box-shadow:0 0 12px rgba(91,140,255,.5);}
+  background:linear-gradient(90deg,var(--accent),var(--accent-strong));box-shadow:0 0 12px rgba(91,140,255,.5);}
 .asi-score.good{color:var(--good);}
 .asi-score.warn{color:var(--warn);}
 .asi-score.muted{color:var(--ink-4);}
@@ -411,7 +413,7 @@ _BUILDERS = """
 .scard .price{font-size:17px;font-weight:800;letter-spacing:-.03em;color:var(--ink);}
 .mkt{font-size:11px;font-weight:800;padding:2px 8px;border-radius:var(--r-pill);}
 .mkt.kospi{background:var(--down-weak);color:var(--down-ink);border:1px solid rgba(52,152,219,.32);}
-.mkt.kosdaq{background:rgba(214,113,177,.16);color:#e08cc4;border:1px solid rgba(214,113,177,.34);}
+.mkt.kosdaq{background:rgba(214,113,177,.16);color:#b03478;border:1px solid rgba(214,113,177,.34);}
 .badge-row{margin:10px 0 8px;display:flex;flex-wrap:wrap;gap:6px;}
 .badge{font-size:11.5px;font-weight:800;padding:3px 10px;border-radius:var(--r-pill);
   display:inline-flex;align-items:center;gap:4px;border:1px solid transparent;}
@@ -433,7 +435,7 @@ _BUILDERS = """
 .bar-label{display:flex;justify-content:space-between;font-size:11.5px;color:var(--ink-3);margin-bottom:5px;}
 .bar{height:8px;border-radius:var(--r-pill);background:var(--surface-3);overflow:hidden;}
 .bar>i{display:block;height:100%;border-radius:var(--r-pill);
-  background:linear-gradient(90deg,var(--accent),#7aa2ff);box-shadow:0 0 12px rgba(91,140,255,.55);}
+  background:linear-gradient(90deg,var(--accent),var(--accent-strong));box-shadow:0 0 12px rgba(91,140,255,.55);}
 .price-wrap{text-align:right;}
 .scard-chg{display:inline-block;font-size:12.5px;font-weight:800;margin-top:3px;padding:1px 8px;border-radius:var(--r-pill);}
 .scard-chg.chg-up{background:var(--up-weak);color:var(--up-ink);}
@@ -552,13 +554,13 @@ _BUILDERS = """
 # ──────────────────────────────────────────────────────────────────────
 _HOME_TOKENS = """
 :root{
-  --accent-quiet:rgba(91,140,255,.08);   /* nav active 배경(칩보다 조용) */
-  --accent-bar:#5b8cff;                   /* 좌측 2px 인디케이터 바 */
-  --hero-veil:rgba(91,140,255,.055);      /* 히어로 단일톤 베일 */
-  --good-quiet:rgba(63,185,80,.14);       /* live-dot 호흡 글로우(다운톤) */
+  --accent-quiet:rgba(59,110,245,.07);   /* nav active 배경(칩보다 조용) */
+  --accent-bar:#3b6ef5;                   /* 좌측 2px 인디케이터 바 */
+  --hero-veil:rgba(59,110,245,.05);       /* 히어로 단일톤 베일 */
+  --good-quiet:rgba(26,141,58,.14);       /* live-dot 호흡 링(다운톤) */
   --r-hero:22px;
   --s-10:56px; --s-11:72px;
-  --sh-flat:0 1px 2px rgba(0,0,0,.30);    /* flat-elevation 1겹 */
+  --sh-flat:0 1px 2px rgba(16,24,40,.06); /* flat-elevation 1겹 */
 }
 """
 

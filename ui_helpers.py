@@ -90,7 +90,7 @@ def make_overview_figure(df: pd.DataFrame, title: str) -> go.Figure:
             title=title,
             height=480,
             xaxis_rangeslider_visible=False,
-            template="plotly_dark",
+            template="plotly_white",
             margin=dict(l=10, r=10, t=60, b=10),
         )
         return fig
@@ -113,7 +113,7 @@ def make_overview_figure(df: pd.DataFrame, title: str) -> go.Figure:
     # 간단(A) 모드: 20일선만 노출(60/120선은 중급 영역으로 분리)
     if "sma20" in df.columns:
         fig.add_trace(
-            go.Scatter(x=df.index, y=df["sma20"], name="SMA20", line=dict(width=1, color="#f1c40f")),
+            go.Scatter(x=df.index, y=df["sma20"], name="SMA20", line=dict(width=1.4, color="#d9920f")),
             row=1,
             col=1,
         )
@@ -128,7 +128,7 @@ def make_overview_figure(df: pd.DataFrame, title: str) -> go.Figure:
         title=title,
         height=480,
         xaxis_rangeslider_visible=False,
-        template="plotly_dark",
+        template="plotly_white",
         legend=dict(orientation="h", yanchor="bottom", y=1.02),
         margin=dict(l=10, r=10, t=60, b=10),
     )
@@ -143,7 +143,7 @@ def make_supply_figure(flows: pd.DataFrame) -> go.Figure:
     """
     fig = make_subplots(specs=[[{"secondary_y": True}]])
     if flows is None or flows.empty:
-        fig.update_layout(height=360, template="plotly_dark",
+        fig.update_layout(height=360, template="plotly_white",
                           margin=dict(l=10, r=10, t=30, b=10))
         return fig
 
@@ -151,23 +151,23 @@ def make_supply_figure(flows: pd.DataFrame) -> go.Figure:
     # 기관/외국인은 '주체'가 다르므로 색을 분리(부호로 매수/매도 구분은 보조축 0선으로 읽음).
     fig.add_trace(
         go.Bar(x=x, y=flows.get("foreign_net"), name="외국인 순매매",
-               marker_color="#5b8cff"),
+               marker_color="#3b6ef5"),
         secondary_y=False,
     )
     fig.add_trace(
         go.Bar(x=x, y=flows.get("inst_net"), name="기관 순매매",
-               marker_color="#e3b341"),
+               marker_color="#d9920f"),
         secondary_y=False,
     )
     if "foreign_hold_pct" in flows.columns:
         fig.add_trace(
             go.Scatter(x=x, y=flows["foreign_hold_pct"], name="외국인 보유율(%)",
-                       line=dict(color="#b692f6", width=2)),
+                       line=dict(color="#7c4ddb", width=2)),
             secondary_y=True,
         )
-    fig.add_hline(y=0, line_width=1, line_color="#3a4456", secondary_y=False)
+    fig.add_hline(y=0, line_width=1, line_color="#cbd3de", secondary_y=False)
     fig.update_layout(
-        height=380, template="plotly_dark", barmode="group",
+        height=380, template="plotly_white", barmode="group",
         legend=dict(orientation="h", yanchor="bottom", y=1.02),
         margin=dict(l=10, r=10, t=40, b=10),
     )
@@ -184,7 +184,7 @@ def make_financials_figure(fin: pd.DataFrame, annual_only: bool = True) -> go.Fi
     """
     fig = make_subplots(specs=[[{"secondary_y": True}]])
     if fin is None or fin.empty:
-        fig.update_layout(height=320, template="plotly_dark",
+        fig.update_layout(height=320, template="plotly_white",
                           margin=dict(l=10, r=10, t=30, b=10))
         return fig
 
@@ -207,13 +207,13 @@ def make_financials_figure(fin: pd.DataFrame, annual_only: bool = True) -> go.Fi
         fig.add_trace(go.Bar(x=labels, y=rev, name="매출액(억)", marker_color="#3a6fd8"),
                       secondary_y=False)
     if op is not None:
-        fig.add_trace(go.Bar(x=labels, y=op, name="영업이익(억)", marker_color="#3fb950"),
+        fig.add_trace(go.Bar(x=labels, y=op, name="영업이익(억)", marker_color="#1a8d3a"),
                       secondary_y=False)
     if op_margin is not None:
         fig.add_trace(go.Scatter(x=labels, y=op_margin, name="영업이익률(%)",
-                                 line=dict(color="#e3b341", width=2)), secondary_y=True)
+                                 line=dict(color="#d9920f", width=2)), secondary_y=True)
     fig.update_layout(
-        height=340, template="plotly_dark", barmode="group",
+        height=340, template="plotly_white", barmode="group",
         legend=dict(orientation="h", yanchor="bottom", y=1.02),
         margin=dict(l=10, r=10, t=40, b=10),
     )
@@ -237,7 +237,7 @@ def make_indicator_figure(df: pd.DataFrame) -> go.Figure:
     if df is None or df.empty:
         fig.update_layout(
             height=420,
-            template="plotly_dark",
+            template="plotly_white",
             margin=dict(l=10, r=10, t=40, b=10),
         )
         return fig
@@ -272,7 +272,7 @@ def make_indicator_figure(df: pd.DataFrame) -> go.Figure:
 
     fig.update_layout(
         height=420,
-        template="plotly_dark",
+        template="plotly_white",
         legend=dict(orientation="h", yanchor="bottom", y=1.02),
         margin=dict(l=10, r=10, t=40, b=10),
     )
