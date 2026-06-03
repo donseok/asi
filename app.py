@@ -11,8 +11,12 @@ import streamlit as st
 
 import config
 import ui_helpers as ui
+import ui_theme
 
 st.set_page_config(page_title="ASI — 한국 주식 분석", page_icon="📈", layout="wide")
+
+# 라이트 핀테크 디자인 토큰/컴포넌트 CSS를 1회 주입(홈도 페이지 톤 일치 — 스펙 §3).
+ui_theme.inject_css()
 
 st.title("📈 ASI — Antigravity Stock Insight")
 st.caption("Phase 0a MVP · 무료 공개 데이터(KRX/pykrx) 기반 · 실거래 기능 없음")
