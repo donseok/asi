@@ -1,9 +1,15 @@
 """scoring 순수 로직 단위 테스트 (합성 DataFrame 주입, 네트워크 없음)."""
 from __future__ import annotations
 
+import numpy as np
 import pandas as pd
 
-from core.analytics.scoring import metric_percentile, percentile_of
+from core.analytics.scoring import (
+    _lower_is_better,
+    compute_scores,
+    metric_percentile,
+    percentile_of,
+)
 
 
 def _sample_scored() -> pd.DataFrame:
@@ -78,3 +84,142 @@ def test_metric_percentile_ticker_zfill():
     df = _sample_scored()
     # "1" → "000001"
     assert metric_percentile(df, "1", "DIV") == 100.0
+
+
+# ── 백필(Task 12): _lower_is_better / compute_scores / percentile_of ──
+def test_lower_is_better_excludes_non_positive():
+    # 0과 음수(적자/무효)는 제외되어 NaN
+    s = pd.Series([10.0, 20.0, 0.0, -5.0])
+    out = _lower_is_better(s)
+    assert pd.isna(out.iloc[2])  # 0.0 제외
+    assert pd.isna(out.iloc[3])  # -5.0 제외
+    # 양수는 점수 존재
+    assert pd.notna(out.iloc[0])
+    assert pd.notna(out.iloc[1])
+
+
+def test_lower_is_better_lower_value_higher_score():
+    # 낮을수록 좋음 → 가장 낮은 양수가 가장 높은 점수
+    s = pd.Series([1.0, 2.0, 3.0, 4.0])
+    out = _lower_is_better(s)
+    # 단조 감소: 값이 커질수록 점수는 낮아진다
+    assert out.iloc[0] > out.iloc[1] > out.iloc[2] > out.iloc[3]
+    # 백분위 평균 형태이므로 모두 0~100 범위
+    assert (out.dropna() >= 0).all()
+    assert (out.dropna() <= 100).all()
+
+
+def _make_snapshot() -> pd.DataFrame:
+    # 합성 스냅샷: PER/PBR/ROE_approx/DIV (일부는 적자/무배당)
+    return pd.DataFrame(
+        {
+            "ticker": ["000001", "000002", "000003", "000004"],
+            "PER": [5.0, 10.0, -2.0, 20.0],     # 세 번째는 적자
+            "PBR": [0.5, 1.0, 2.0, 3.0],
+            "ROE_approx": [15.0, 10.0, 5.0, 1.0],
+            "DIV": [4.0, 0.0, 2.0, 1.0],        # 두 번째는 무배당
+        }
+    )
+
+
+def test_compute_scores_adds_expected_columns():
+    out = compute_scores(_make_snapshot())
+    for col in ("value_score", "quality_score", "income_score", "score"):
+        assert col in out.columns
+
+
+def test_compute_scores_does_not_mutate_input():
+    snap = _make_snapshot()
+    before = snap.copy(deep=True)
+    compute_scores(snap)
+    # 원본 비파괴: 컬럼/값 동일
+    pd.testing.assert_frame_equal(snap, before)
+
+
+def test_compute_scores_value_nan_for_negative_per_only_pbr():
+    # 세 번째 종목: PER<0(제외) BUT PBR>0 → value_score는 PBR 단독 평균(NaN 아님)
+    out = compute_scores(_make_snapshot())
+    v3 = out.loc[out["ticker"] == "000003", "value_score"].iloc[0]
+    assert pd.notna(v3)
+
+
+def test_compute_scores_income_nan_for_zero_div():
+    # 두 번째 종목: DIV=0 → income_score는 NaN
+    out = compute_scores(_make_snapshot())
+    i2 = out.loc[out["ticker"] == "000002", "income_score"].iloc[0]
+    assert pd.isna(i2)
+
+
+def test_compute_scores_missing_columns_safe():
+    # 일부 컬럼(ROE_approx/DIV)이 없어도 깨지지 않고 score 컬럼이 생성됨
+    snap = pd.DataFrame(
+        {
+            "ticker": ["000001", "000002"],
+            "PER": [5.0, 10.0],
+            "PBR": [0.5, 1.0],
+        }
+    )
+    out = compute_scores(snap)
+    assert "score" in out.columns
+    # value_score는 존재(PER/PBR 있음)
+    assert pd.notna(out["value_score"]).any()
+
+
+def _scored_for_percentile() -> pd.DataFrame:
+    # score 값이 명확한 4종목 (백분위 계산 검증용)
+    return pd.DataFrame(
+        {
+            "ticker": ["000001", "000002", "000003", "000004"],
+            "score": [10.0, 20.0, 30.0, 40.0],
+        }
+    )
+
+
+def test_percentile_of_top_is_100():
+    scored = _scored_for_percentile()
+    # 가장 높은 score(40) 종목 → (모든 값 <= 40) → 100%
+    assert percentile_of(scored, "000004") == 100.0
+
+
+def test_percentile_of_bottom_ratio():
+    scored = _scored_for_percentile()
+    # 가장 낮은 score(10) → (1/4 값이 <=10) → 25%
+    assert percentile_of(scored, "000001") == 25.0
+
+
+def test_percentile_of_zfills_ticker():
+    scored = _scored_for_percentile()
+    # 정수형/짧은 티커도 zfill(6)로 매칭되어야 함
+    assert percentile_of(scored, "1") == 25.0
+    assert percentile_of(scored, 1) == 25.0
+
+
+def test_percentile_of_custom_column():
+    scored = pd.DataFrame(
+        {
+            "ticker": ["000001", "000002"],
+            "value_score": [10.0, 90.0],
+        }
+    )
+    assert percentile_of(scored, "000002", column="value_score") == 100.0
+
+
+def test_percentile_of_missing_column_returns_none():
+    scored = _scored_for_percentile()
+    assert percentile_of(scored, "000001", column="없는컬럼") is None
+
+
+def test_percentile_of_unknown_ticker_returns_none():
+    scored = _scored_for_percentile()
+    assert percentile_of(scored, "999999") is None
+
+
+def test_percentile_of_nan_value_returns_none():
+    scored = pd.DataFrame(
+        {
+            "ticker": ["000001", "000002"],
+            "score": [np.nan, 50.0],
+        }
+    )
+    # 해당 종목 score가 NaN → None
+    assert percentile_of(scored, "000001") is None
