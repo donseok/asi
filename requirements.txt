@@ -1,0 +1,11 @@
+# ASI — Phase 0a MVP 의존성 (외부 API 키 불필요: pykrx/FDR는 무료·키 없음)
+streamlit>=1.30
+pandas>=2.0
+numpy>=1.24
+pykrx>=1.0.45
+finance-datareader>=0.9.50
+plotly>=5.18
+pyarrow>=14.0
+
+# 테스트
+pytest>=7.4

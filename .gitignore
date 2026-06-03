@@ -1,0 +1,32 @@
+# 비밀키는 절대 커밋 금지 (DART/Claude/키움 키 전부)
+.env
+secrets.toml
+.streamlit/secrets.toml
+
+# 캐시 데이터 (Parquet) — 재생성 가능하므로 추적 안 함
+# 주의: 루트 전용(/data/). 'data/'로 두면 소스인 core/data/ 까지 무시됨.
+/data/
+
+# 파이썬
+__pycache__/
+*.pyc
+*.pyo
+.pytest_cache/
+.ipynb_checkpoints/
+
+# 가상환경
+.venv/
+venv/
+env/
+
+# 로컬 DB
+*.db
+*.sqlite3
+
+# OS / 에디터
+.DS_Store
+.idea/
+.vscode/
+
+# 브레인스토밍 시각 도구 임시 파일
+.superpowers/
