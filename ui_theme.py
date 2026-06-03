@@ -544,6 +544,134 @@ _BUILDERS = """
 .glossary-term .gl-ic{color:var(--accent);font-size:11px;cursor:help;}
 """
 
+# ──────────────────────────────────────────────────────────────────────
+# ASI Quietude+ — 디자인 패널(3 디자이너→심사→종합) 만장일치 채택안.
+# "고요한 프리미엄"(Toss/Stripe 미니멀 다크) + Terminal/Aurora 정수 그래프트.
+# 기존 토큰/클래스는 보존하고 '추가만' 한다(테스트 무변경). 단일 인디고 액센트 규율,
+# flat-elevation 카드(네온/블러 글로우 제거), eyebrow 섹션 리듬, 좌측 2px 네비 인디케이터.
+# ──────────────────────────────────────────────────────────────────────
+_HOME_TOKENS = """
+:root{
+  --accent-quiet:rgba(91,140,255,.08);   /* nav active 배경(칩보다 조용) */
+  --accent-bar:#5b8cff;                   /* 좌측 2px 인디케이터 바 */
+  --hero-veil:rgba(91,140,255,.055);      /* 히어로 단일톤 베일 */
+  --good-quiet:rgba(63,185,80,.14);       /* live-dot 호흡 글로우(다운톤) */
+  --r-hero:22px;
+  --s-10:56px; --s-11:72px;
+  --sh-flat:0 1px 2px rgba(0,0,0,.30);    /* flat-elevation 1겹 */
+}
+"""
+
+_HOME = """
+/* ── 섹션 리듬: eyebrow + 페이드 선 ── */
+.asi-eyebrow{display:flex;align-items:center;gap:12px;font-size:12px;font-weight:800;
+  letter-spacing:.14em;text-transform:uppercase;color:var(--ink-4);margin:0 0 14px;}
+.asi-eyebrow::after{content:"";flex:1;height:1px;
+  background:linear-gradient(90deg,var(--line),transparent);}
+.asi-section{margin:var(--s-10) 0 0;}
+.asi-section:first-of-type{margin-top:0;}
+
+/* ── [1] HERO ── */
+.asi-hero{position:relative;padding:18px 0 8px;margin-bottom:var(--s-7);border-radius:var(--r-hero);}
+.asi-hero::before{content:"";position:absolute;inset:-8px -16px auto -16px;height:240px;
+  background:radial-gradient(680px 220px at 18% 0%, var(--hero-veil), transparent 70%);
+  pointer-events:none;z-index:0;}
+.asi-hero > *{position:relative;z-index:1;}
+.asi-hero-title{font-size:clamp(2.4rem,4vw,3.4rem);font-weight:850;letter-spacing:-.045em;
+  line-height:1.08;color:var(--ink);margin:8px 0 16px;}
+.asi-hero-title em{color:var(--accent-ink);font-style:normal;}
+.asi-hero-sub{font-size:clamp(15px,1.4vw,18px);color:var(--ink-3);line-height:1.6;
+  max-width:54ch;margin:0 0 4px;}
+.asi-hero-aside{display:inline-flex;align-items:center;gap:9px;background:var(--surface);
+  border:1px solid var(--line-hair);border-radius:var(--r-md);padding:9px 14px;
+  box-shadow:var(--sh-flat);font-size:12.5px;color:var(--ink-3);}
+.asi-hero-aside .k{color:var(--ink-4);font-weight:700;}
+.asi-hero-aside .v{color:var(--ink-2);font-weight:800;}
+
+/* live-dot — 느린 호흡 단색(네온 펄스 다운톤) */
+.asi-dot{width:8px;height:8px;border-radius:50%;flex:none;background:var(--good);
+  box-shadow:0 0 0 4px var(--good-quiet);animation:asiBreathe 2.4s ease-in-out infinite;}
+@keyframes asiBreathe{0%,100%{opacity:.65}50%{opacity:1}}
+
+/* ── [2] DATA FRESHNESS 라이너 ── */
+.asi-freshbar{display:flex;align-items:center;gap:10px;background:var(--surface);
+  border:1px solid var(--line-hair);border-radius:var(--r-md);padding:11px 16px;
+  box-shadow:var(--sh-flat);font-size:13px;color:var(--ink-3);}
+.asi-freshbar .lbl{font-weight:700;color:var(--ink-2);}
+.asi-freshbar .asof{color:var(--ink);font-weight:800;}
+
+/* ── [2.5] KPI 스트립(좌측 2px 시그널 바) ── */
+.asi-kpis{display:grid;grid-template-columns:repeat(3,1fr);gap:12px;}
+@media(max-width:760px){.asi-kpis{grid-template-columns:1fr;}}
+.asi-kpi{position:relative;background:var(--surface);border:1px solid var(--line);
+  border-radius:var(--r-card);padding:14px 16px 13px 18px;box-shadow:var(--sh-flat);}
+.asi-kpi::before{content:"";position:absolute;left:0;top:12px;bottom:12px;width:2px;
+  border-radius:2px;background:var(--accent-bar);}
+.asi-kpi .k{font-size:11.5px;font-weight:700;letter-spacing:.04em;text-transform:uppercase;color:var(--ink-4);}
+.asi-kpi .v{font-size:22px;font-weight:850;letter-spacing:-.03em;color:var(--ink);margin-top:4px;line-height:1.1;}
+
+/* ── [3] FEATURE 카드(flat-elevation) ── */
+.asi-feature{background:var(--surface);border:1px solid var(--line);border-radius:var(--r-card);
+  padding:26px 24px 22px;box-shadow:var(--sh-flat);
+  transition:border-color .18s ease, transform .18s ease;}
+.asi-feature:hover{border-color:var(--line-strong);transform:translateY(-1px);}
+.asi-feature .idx{font-variant-numeric:tabular-nums;color:var(--ink-4);font-size:13px;
+  font-weight:700;letter-spacing:.04em;}
+.asi-feature .ttl{font-size:20px;font-weight:800;letter-spacing:-.03em;color:var(--ink);margin:10px 0 8px;}
+.asi-feature .desc{font-size:14px;color:var(--ink-3);line-height:1.6;}
+.asi-feature .ft-foot{margin-top:16px;padding-top:14px;border-top:1px solid var(--line-hair);}
+
+/* ── [4] HOW IT WORKS — 3스텝 ── */
+.asi-steps{display:grid;grid-template-columns:repeat(3,1fr);gap:14px;}
+@media(max-width:760px){.asi-steps{grid-template-columns:1fr;}}
+.asi-step{padding:4px 6px;}
+.asi-step .n{font-variant-numeric:tabular-nums;font-size:44px;font-weight:800;line-height:1;
+  color:var(--ink-4);letter-spacing:-.04em;}
+.asi-step .t{font-size:15px;font-weight:800;color:var(--ink);margin:10px 0 4px;}
+.asi-step .d{font-size:13px;color:var(--ink-3);line-height:1.55;}
+
+/* ── [5] 푸터 ── */
+.asi-foot{margin-top:var(--s-9);padding-top:18px;border-top:1px solid var(--line-hair);
+  display:flex;align-items:center;gap:10px;flex-wrap:wrap;font-size:12px;color:var(--ink-4);}
+.asi-foot .mark{width:16px;height:16px;border-radius:5px;
+  background:linear-gradient(150deg,var(--accent),#6f63ff);}
+.asi-foot b{color:var(--ink-2);}
+.asi-foot .sep{color:var(--line-strong);}
+
+/* ── 사이드바: 평평 배경 + 브랜드 헤더 위로 + 좌측 2px 인디케이터 active ── */
+[data-testid="stSidebar"]{background:var(--bg-2);border-right:1px solid var(--line);}
+[data-testid="stSidebar"] *{color:var(--ink-2);}
+/* 브랜드(주입한 user-content)를 자동 네비 위로 끌어올림 */
+[data-testid="stSidebarContent"]{display:flex;flex-direction:column;}
+[data-testid="stSidebarHeader"]{order:0;}
+[data-testid="stSidebarUserContent"]{order:1;}
+[data-testid="stSidebarNav"]{order:2;}
+
+.asi-brand{display:flex;align-items:center;gap:11px;padding:8px 8px 16px;
+  border-bottom:1px solid var(--line-hair);margin-bottom:6px;}
+.asi-brand .mark{width:28px;height:28px;border-radius:8px;flex:none;
+  background:linear-gradient(150deg,var(--accent),#6f63ff);}
+.asi-brand .wm{font-size:18px;font-weight:850;letter-spacing:-.03em;color:var(--ink);line-height:1;}
+.asi-brand .sub{font-size:11px;color:var(--ink-4);margin-top:2px;letter-spacing:.02em;}
+
+[data-testid="stSidebarNav"] ul{padding-top:2px;}
+[data-testid="stSidebarNav"] a{position:relative;border-radius:var(--r-md);font-weight:700;
+  font-size:14px;color:var(--ink-3) !important;padding:9px 12px;margin:2px 6px;
+  transition:background .15s, color .15s, transform .15s;}
+[data-testid="stSidebarNav"] a:hover{background:var(--glass-2);color:var(--ink-2) !important;transform:translateX(2px);}
+[data-testid="stSidebarNav"] a[aria-current="page"]{background:var(--accent-quiet);color:var(--ink) !important;}
+[data-testid="stSidebarNav"] a[aria-current="page"]::before{content:"";position:absolute;left:0;top:8px;bottom:8px;
+  width:2px;border-radius:2px;background:var(--accent-bar);}
+
+/* ── 카드 시그니처 정제: 글로우 다운톤(flat-elevation 일관) ── */
+.score-num.tier-good{text-shadow:none;}
+.score-num.tier-warn{text-shadow:none;}
+.bar>i{box-shadow:none;}
+.asi-bar>i{box-shadow:none;}
+.oh-level.oh-hot{box-shadow:none;}
+.week52-marker{box-shadow:none;}
+"""
+
 
 def build_css() -> str:
     """주입할 전체 CSS를 <style>로 감싼 문자열로 반환(순수, 부작용 없음)."""
@@ -552,17 +680,30 @@ def build_css() -> str:
         + _PRETENDARD_IMPORT
         + "\n"
         + _ROOT_TOKENS
+        + _HOME_TOKENS
         + _BASE
         + _COMPONENTS
         + _BUILDERS
+        + _HOME
         + "\n</style>"
     )
 
 
-def inject_css() -> None:
-    """다크 모던 디자인 토큰/컴포넌트/Streamlit 크롬 CSS를 페이지에 1회 주입한다.
+# 사이드바 브랜드 헤더(모든 페이지 공통 — CSS 'order'로 자동 네비 위에 배치).
+_SIDEBAR_BRAND = (
+    '<div class="asi-brand">'
+    '<span class="mark" aria-hidden="true"></span>'
+    '<span><span class="wm">ASI</span>'
+    '<div class="sub">Stock Insight</div></span>'
+    "</div>"
+)
 
-    각 페이지(app.py, pages/*) 상단에서 호출한다.
-    st.markdown(unsafe_allow_html=True)로 <style>을 그대로 삽입.
+
+def inject_css() -> None:
+    """ASI Quietude+ 디자인 토큰/컴포넌트/Streamlit 크롬 CSS + 사이드바 브랜드를 주입한다.
+
+    각 페이지(app.py, pages/*) 상단에서 호출한다. <style> 삽입 후 사이드바 상단에
+    브랜드 헤더를 1회 렌더(switch_page 핸드오프·진입 구조 불변 — CSS-only 네비 브랜드화).
     """
     st.markdown(build_css(), unsafe_allow_html=True)
+    st.sidebar.markdown(_SIDEBAR_BRAND, unsafe_allow_html=True)
