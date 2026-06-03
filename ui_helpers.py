@@ -49,16 +49,27 @@ def fmt_won(value) -> str:
     return f"{value:,.0f}"
 
 
-def make_price_figure(df: pd.DataFrame, title: str) -> go.Figure:
-    """캔들 + 이동평균 + 거래량 + RSI + MACD 복합 차트."""
+def make_overview_figure(df: pd.DataFrame, title: str) -> go.Figure:
+    """개요 차트: 캔들 + 20일 이동평균 + 거래량(2단). 한국 색 유지."""
     fig = make_subplots(
-        rows=4,
+        rows=2,
         cols=1,
         shared_xaxes=True,
-        vertical_spacing=0.03,
-        row_heights=[0.5, 0.16, 0.17, 0.17],
-        subplot_titles=("가격 + 이동평균선", "거래량", "RSI(14)", "MACD"),
+        vertical_spacing=0.04,
+        row_heights=[0.74, 0.26],
+        subplot_titles=("가격 + 20일 이동평균선", "거래량"),
     )
+
+    # 빈 df 방어: trace 없이 빈 figure만 반환(앱이 죽지 않게)
+    if df is None or df.empty:
+        fig.update_layout(
+            title=title,
+            height=480,
+            xaxis_rangeslider_visible=False,
+            template="plotly_dark",
+            margin=dict(l=10, r=10, t=60, b=10),
+        )
+        return fig
 
     fig.add_trace(
         go.Candlestick(
@@ -74,34 +85,84 @@ def make_price_figure(df: pd.DataFrame, title: str) -> go.Figure:
         row=1,
         col=1,
     )
-    for w, color in zip((20, 60, 120), ("#f1c40f", "#9b59b6", "#1abc9c")):
-        col = f"sma{w}"
-        if col in df.columns:
-            fig.add_trace(
-                go.Scatter(x=df.index, y=df[col], name=f"SMA{w}", line=dict(width=1, color=color)),
-                row=1,
-                col=1,
-            )
 
-    fig.add_trace(go.Bar(x=df.index, y=df["volume"], name="거래량", marker_color="#7f8c8d"), row=2, col=1)
+    # 간단(A) 모드: 20일선만 노출(60/120선은 중급 영역으로 분리)
+    if "sma20" in df.columns:
+        fig.add_trace(
+            go.Scatter(x=df.index, y=df["sma20"], name="SMA20", line=dict(width=1, color="#f1c40f")),
+            row=1,
+            col=1,
+        )
 
-    if "rsi" in df.columns:
-        fig.add_trace(go.Scatter(x=df.index, y=df["rsi"], name="RSI", line=dict(color="#e67e22")), row=3, col=1)
-        fig.add_hline(y=70, line_dash="dot", line_color="#e74c3c", row=3, col=1)
-        fig.add_hline(y=30, line_dash="dot", line_color="#3498db", row=3, col=1)
-
-    if "macd" in df.columns:
-        fig.add_trace(go.Scatter(x=df.index, y=df["macd"], name="MACD", line=dict(color="#2980b9")), row=4, col=1)
-        fig.add_trace(go.Scatter(x=df.index, y=df["signal"], name="Signal", line=dict(color="#e67e22")), row=4, col=1)
-        colors = ["#e74c3c" if v >= 0 else "#3498db" for v in df["hist"].fillna(0)]
-        fig.add_trace(go.Bar(x=df.index, y=df["hist"], name="Hist", marker_color=colors), row=4, col=1)
+    fig.add_trace(
+        go.Bar(x=df.index, y=df["volume"], name="거래량", marker_color="#7f8c8d"),
+        row=2,
+        col=1,
+    )
 
     fig.update_layout(
         title=title,
-        height=820,
+        height=480,
         xaxis_rangeslider_visible=False,
         template="plotly_dark",
         legend=dict(orientation="h", yanchor="bottom", y=1.02),
         margin=dict(l=10, r=10, t=60, b=10),
+    )
+    return fig
+
+
+def make_indicator_figure(df: pd.DataFrame) -> go.Figure:
+    """기술 지표 차트: RSI(14) + MACD(2단). 중급 펼침 영역에서 사용."""
+    fig = make_subplots(
+        rows=2,
+        cols=1,
+        shared_xaxes=True,
+        vertical_spacing=0.08,
+        row_heights=[0.5, 0.5],
+        subplot_titles=("RSI(14)", "MACD"),
+    )
+
+    # 빈 df 방어: trace 없이 빈 figure만 반환
+    if df is None or df.empty:
+        fig.update_layout(
+            height=420,
+            template="plotly_dark",
+            margin=dict(l=10, r=10, t=40, b=10),
+        )
+        return fig
+
+    if "rsi" in df.columns:
+        fig.add_trace(
+            go.Scatter(x=df.index, y=df["rsi"], name="RSI", line=dict(color="#e67e22")),
+            row=1,
+            col=1,
+        )
+        fig.add_hline(y=70, line_dash="dot", line_color="#e74c3c", row=1, col=1)
+        fig.add_hline(y=30, line_dash="dot", line_color="#3498db", row=1, col=1)
+
+    if "macd" in df.columns:
+        fig.add_trace(
+            go.Scatter(x=df.index, y=df["macd"], name="MACD", line=dict(color="#2980b9")),
+            row=2,
+            col=1,
+        )
+        fig.add_trace(
+            go.Scatter(x=df.index, y=df["signal"], name="Signal", line=dict(color="#e67e22")),
+            row=2,
+            col=1,
+        )
+        # 히스토그램: 양수=빨강/음수=파랑(한국 관습)
+        colors = ["#e74c3c" if v >= 0 else "#3498db" for v in df["hist"].fillna(0)]
+        fig.add_trace(
+            go.Bar(x=df.index, y=df["hist"], name="Hist", marker_color=colors),
+            row=2,
+            col=1,
+        )
+
+    fig.update_layout(
+        height=420,
+        template="plotly_dark",
+        legend=dict(orientation="h", yanchor="bottom", y=1.02),
+        margin=dict(l=10, r=10, t=40, b=10),
     )
     return fig
